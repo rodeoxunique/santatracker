@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Santa Tracker Deluxe</title>
+<style>
+    body {
+        margin: 0;
+        background: #111;
+        color: white;
+        font-family: Arial, sans-serif;
+        display: flex;
+        height: 100vh;
+    }
+
+    #sidebar {
+        width: 260px;
+        background: #1a1a1a;
+        padding: 20px;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    button {
+        padding: 10px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        background: #e63946;
+        color: white;
+        font-weight: bold;
+        font-size: 14px;
+    }
+
+    button:hover {
+        background: #c71f35;
+    }
+
+    #map-wrapper {
+        flex: 1;
+        overflow: hidden;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: #000;
+        position: relative;
+    }
+
+    #map-container {
+        position: relative;
+        width: 900px;
+        transition: transform 0.3s ease;
+    }
+
+    #map {
+        width: 100%;
+        display: block;
+    }
+
+    #santa {
+        position: absolute;
+        width: 45px;
+        height: 45px;
+        transform: translate(-50%, -50%);
+        transition: left 3s linear, top 3s linear;
+        z-index: 10;
+    }
+
+    .trail-dot {
+        position: absolute;
+        width: 14px;
+        height: 14px;
+        background: rgba(255, 0, 0, 0.7);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 5;
+    }
+
+    h2 {
+        margin: 0;
+        font-size: 20px;
+        color: #f2f2f2;
+    }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+    <h2>🎅 Santa Tracker</h2>
+    <div id="countdown"></div>
+
+    <button onclick="moveSanta()">Refresh Santa Location</button>
+
+    <div>
+        <button onclick="zoomIn()">Zoom In</button>
+        <button onclick="zoomOut()">Zoom Out</button>
+    </div>
+
+    <small>Santa moves automatically every 10 minutes</small>
+</div>
+
+<div id="map-wrapper">
+    <div id="map-container">
+        <img id="map" src="GTAV-HD-MAP-satellite.jpg" alt="Map">
+        <img id="santa" src="https://cdn-icons-png.flaticon.com/512/616/616492.png" alt="Santa">
+    </div>
+</div>
+
+<script>
+    const santa = document.getElementById("santa");
+    const mapContainer = document.getElementById("map-container");
+    let zoomLevel = 1;
+    let trail = [];
+
+    // Move Santa
+    function moveSanta() {
+        const width = mapContainer.offsetWidth;
+        const height = mapContainer.offsetHeight;
+
+        const x = Math.random() * width;
+        const y = Math.random() * height;
+
+        // Record trail
+        trail.push({ x, y });
+
+        // Keep only last 3
+        if (trail.length > 3) {
+            trail.shift();
+        }
+
+        updateTrail();
+
+        // Animate Santa
+        santa.style.left = x + "px";
+        santa.style.top = y + "px";
+    }
+
+    // Draw trail dots
+    function updateTrail() {
+        // Remove old dots
+        document.querySelectorAll(".trail-dot").forEach(dot => dot.remove());
+
+        // Add new dots
+        trail.forEach(pos => {
+            const dot = document.createElement("div");
+            dot.className = "trail-dot";
+            dot.style.left = pos.x + "px";
+            dot.style.top = pos.y + "px";
+            mapContainer.appendChild(dot);
+        });
+    }
+
+    // Zoom buttons
+    function zoomIn() {
+        zoomLevel += 0.2;
+        mapContainer.style.transform = `scale(${zoomLevel})`;
+    }
+
+    function zoomOut() {
+        zoomLevel = Math.max(0.5, zoomLevel - 0.2);
+        mapContainer.style.transform = `scale(${zoomLevel})`;
+    }
+
+    // Auto-move every 10 minutes
+    setInterval(moveSanta, 600000);
+
+    // Move immediately on load
+    moveSanta();
+
+    // Christmas countdown
+    function updateCountdown() {
+        const now = new Date();
+        const target = new Date(now.getFullYear(), 11, 24, 0, 0, 0); // Dec 24 00:00
+
+        const diff = target - now;
+
+        if (diff <= 0) {
+            document.getElementById("countdown").innerHTML = "🎄 It's Christmas Eve!";
+            return;
+        }
+
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+        const minutes = Math.floor((diff / (1000 * 60)) % 60);
+        const seconds = Math.floor((diff / 1000) % 60);
+
+        document.getElementById("countdown").innerHTML =
+            `<strong>Christmas Eve Countdown</strong><br>
+             ${days}d ${hours}h ${minutes}m ${seconds}s`;
+
+    }
+
+    setInterval(updateCountdown, 1000);
+    updateCountdown();
+</script>
+
+</body>
+</html>
