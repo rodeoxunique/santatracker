@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Santa Tracker Deluxe</title>
+<title>Santa Tracker Deluxe (Land Only)</title>
 <style>
     body {
         margin: 0;
@@ -72,7 +72,7 @@
         position: absolute;
         width: 14px;
         height: 14px;
-        background: rgba(255, 0, 0, 0.7);
+        background: rgba(255, 0, 0, 0.75);
         border-radius: 50%;
         transform: translate(-50%, -50%);
         z-index: 5;
@@ -111,38 +111,77 @@
 <script>
     const santa = document.getElementById("santa");
     const mapContainer = document.getElementById("map-container");
+
     let zoomLevel = 1;
     let trail = [];
 
-    // Move Santa
+    // -------- LOAD LANDMASK INTO HIDDEN CANVAS --------
+    const landmask = new Image();
+    landmask.src = "landmask_v2.png";
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    // Check if pixel is land (white pixel)
+    function isLand(x, y) {
+        const w = landmask.width;
+        const h = landmask.height;
+
+        canvas.width = w;
+        canvas.height = h;
+        ctx.drawImage(landmask, 0, 0);
+
+        const pixel = ctx.getImageData(Math.floor(x), Math.floor(y), 1, 1).data;
+        return pixel[0] > 200; // white pixel = land
+    }
+
+    // Find a random land pixel
+    function getRandomLandPosition() {
+        let x, y;
+        let tries = 0;
+
+        const w = landmask.width;
+        const h = landmask.height;
+
+        do {
+            x = Math.random() * w;
+            y = Math.random() * h;
+            tries++;
+        } while (!isLand(x, y) && tries < 20000);
+
+        return { x, y };
+    }
+
+    // -------- MOVE SANTA ONLY ON LAND --------
     function moveSanta() {
-        const width = mapContainer.offsetWidth;
-        const height = mapContainer.offsetHeight;
+        const mapWidth = mapContainer.offsetWidth;
+        const mapHeight = mapContainer.offsetHeight;
 
-        const x = Math.random() * width;
-        const y = Math.random() * height;
+        const landWidth = landmask.width;
+        const landHeight = landmask.height;
 
-        // Record trail
+        // Get valid land position
+        const landPos = getRandomLandPosition();
+
+        // Convert landmask coordinates → screen coordinates
+        const x = (landPos.x / landWidth) * mapWidth;
+        const y = (landPos.y / landHeight) * mapHeight;
+
+        // Trail
         trail.push({ x, y });
-
-        // Keep only last 3
-        if (trail.length > 3) {
-            trail.shift();
-        }
+        if (trail.length > 3) trail.shift();
 
         updateTrail();
 
-        // Animate Santa
+        // Smooth movement
         santa.style.left = x + "px";
         santa.style.top = y + "px";
     }
 
     // Draw trail dots
     function updateTrail() {
-        // Remove old dots
         document.querySelectorAll(".trail-dot").forEach(dot => dot.remove());
 
-        // Add new dots
         trail.forEach(pos => {
             const dot = document.createElement("div");
             dot.className = "trail-dot";
@@ -152,7 +191,7 @@
         });
     }
 
-    // Zoom buttons
+    // Zoom
     function zoomIn() {
         zoomLevel += 0.2;
         mapContainer.style.transform = `scale(${zoomLevel})`;
@@ -166,34 +205,31 @@
     // Auto-move every 10 minutes
     setInterval(moveSanta, 600000);
 
-    // Move immediately on load
-    moveSanta();
-
-    // Christmas countdown
+    // Christmas Eve countdown
     function updateCountdown() {
         const now = new Date();
-        const target = new Date(now.getFullYear(), 11, 24, 0, 0, 0); // Dec 24 00:00
-
+        const target = new Date(now.getFullYear(), 11, 24, 0, 0, 0);
         const diff = target - now;
 
         if (diff <= 0) {
-            document.getElementById("countdown").innerHTML = "🎄 It's Christmas Eve!";
+            countdown.innerHTML = "🎄 It's Christmas Eve!";
             return;
         }
 
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
         const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-        const minutes = Math.floor((diff / (1000 * 60)) % 60);
-        const seconds = Math.floor((diff / 1000) % 60);
+        const mins = Math.floor((diff / (1000 * 60)) % 60);
+        const secs = Math.floor((diff / 1000) % 60);
 
-        document.getElementById("countdown").innerHTML =
-            `<strong>Christmas Eve Countdown</strong><br>
-             ${days}d ${hours}h ${minutes}m ${seconds}s`;
-
+        countdown.innerHTML =
+            `<strong>Christmas Eve Countdown</strong><br>${days}d ${hours}h ${mins}m ${secs}s`;
     }
 
     setInterval(updateCountdown, 1000);
     updateCountdown();
+
+    // Wait for landmask to load before first movement
+    landmask.onload = () => moveSanta();
 </script>
 
 </body>
